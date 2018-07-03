@@ -81,13 +81,13 @@ open class ActionCableClient {
     open var url: Foundation.URL { return socket.currentURL }
     
     open var headers : [String: String] {
-        get { return socket.headers }
-        set { socket.headers = newValue }
+        get { return socket.request.allHTTPHeaderFields ?? [String: String]() }
+        set { socket.request.allHTTPHeaderFields = newValue }
     }
     
     open var origin : String? {
-        get { return socket.origin }
-        set { socket.origin = newValue }
+        get { return socket.request.value(forHTTPHeaderField: "Origin") }
+        set { socket.request.setValue(newValue, forHTTPHeaderField: "Origin")}
     }
     
     /// Initialize an ActionCableClient.
