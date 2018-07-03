@@ -23,9 +23,9 @@
 import Foundation
 
 internal class JSONSerializer {
-
+    
     static let nonStandardMessageTypes: [MessageType] = [.ping, .welcome]
-  
+    
     static func serialize(_ channel : Channel, command: Command, data: ActionPayload?) throws -> String {
         
         do {
@@ -40,24 +40,24 @@ internal class JSONSerializer {
             
             let JSONData = try JSONSerialization.data(withJSONObject: identifierDict, options: JSONSerialization.WritingOptions(rawValue: 0))
             guard let identifierString = NSString(data: JSONData, encoding: String.Encoding.utf8.rawValue)
-                  else { throw SerializationError.json }
+                else { throw SerializationError.json }
             
             var commandDict = [
                 "command" : command.string,
                 "identifier" : identifierString
-            ] as [String : Any]
+                ] as [String : Any]
             
             if let _ = data {
                 let JSONData = try JSONSerialization.data(withJSONObject: data!, options: JSONSerialization.WritingOptions(rawValue: 0))
                 guard let dataString = NSString(data: JSONData, encoding: String.Encoding.utf8.rawValue)
-                      else { throw SerializationError.json }
+                    else { throw SerializationError.json }
                 
                 commandDict["data"] = dataString
             }
             
             let CmdJSONData = try JSONSerialization.data(withJSONObject: commandDict, options: JSONSerialization.WritingOptions(rawValue: 0))
             guard let JSONString = NSString(data: CmdJSONData, encoding: String.Encoding.utf8.rawValue)
-                  else { throw SerializationError.json }
+                else { throw SerializationError.json }
             
             return JSONString as String
         } catch {
@@ -66,26 +66,26 @@ internal class JSONSerializer {
     }
     
     static func deserialize(_ string: String) throws -> Message {
-      
+        
         do {
             guard let JSONData = string.data(using: String.Encoding.utf8) else { throw SerializationError.json }
-
+            
             guard let JSONObj = try JSONSerialization.jsonObject(with: JSONData, options: .allowFragments) as? Dictionary<String, AnyObject>
-              else { throw SerializationError.json }
+                else { throw SerializationError.json }
             
             var messageType: MessageType = .unrecognized
             if let typeObj = JSONObj["type"], let typeString = typeObj as? String {
-              messageType = MessageType(string: typeString)
+                messageType = MessageType(string: typeString)
             }
-          
+            
             var channelName: String?
-            var channelIdentifier: String?
+            var channelIdentifier: Dictionary<String, Any>?
             if let idObj = JSONObj["identifier"] {
                 var idJSON: Dictionary<String, AnyObject>
                 if let idString = idObj as? String {
                     guard let JSONIdentifierData = idString.data(using: String.Encoding.utf8)
-                      else { throw SerializationError.json }
-                  
+                        else { throw SerializationError.json }
+                    
                     if let JSON = try JSONSerialization.jsonObject(with: JSONIdentifierData, options: .allowFragments) as? Dictionary<String, AnyObject> {
                         idJSON = JSON
                     } else {
@@ -97,34 +97,30 @@ internal class JSONSerializer {
                     throw SerializationError.protocolViolation
                 }
                 
-                if let item = idJSON.first {
-                    channelIdentifier = item.value as? String
-                }
-                
                 if let nameStr = idJSON["channel"], let name = nameStr as? String {
-                  channelName = name
-                }
-                
-                if channelIdentifier != nil {
-                    channelName = channelIdentifier
+                    channelName = name
+                    channelIdentifier = idJSON
+                    channelIdentifier?.removeValue(forKey: "channel")
                 }
             }
-          
+            
             switch messageType {
             // Subscriptions
             case .confirmSubscription, .rejectSubscription, .cancelSubscription, .hibernateSubscription:
                 guard let _ = channelName
-                  else { throw SerializationError.protocolViolation }
+                    else { throw SerializationError.protocolViolation }
                 
                 return Message(channelName: channelName,
+                               channelIdentifier: channelIdentifier,
                                actionName:  nil,
                                messageType: messageType,
                                data: nil,
                                error: nil)
-              
+                
             // Welcome/Ping messages
             case .welcome, .ping:
                 return Message(channelName: nil,
+                               channelIdentifier: nil,
                                actionName: nil,
                                messageType: messageType,
                                data: nil,
@@ -149,19 +145,20 @@ internal class JSONSerializer {
                     
                     messageValue = messageObj
                 } catch {
-                  messageError = error
+                    messageError = error
                 }
                 
                 return Message(channelName: channelName!,
+                               channelIdentifier: channelIdentifier,
                                actionName: messageActionName,
                                messageType: MessageType.message,
                                data: messageValue,
                                error: messageError)
-            
-          }
+                
+            }
         } catch {
             throw error
         }
     }
-
+    
 }

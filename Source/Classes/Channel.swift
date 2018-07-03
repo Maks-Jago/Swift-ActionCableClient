@@ -32,7 +32,7 @@ open class Channel: Hashable, Equatable {
     open var name : String
     
     /// Identifier
-    open var identifier: Dictionary<String, Any>?
+    open var identifier: [String : Any]?
     
     /// Auto-Subscribe to channel on initialization and re-connect?
     open var autoSubscribe : Bool
@@ -43,22 +43,7 @@ open class Channel: Hashable, Equatable {
     
     /// Subscribed
     open var isSubscribed : Bool {
-        return client.subscribed(uid)
-    }
-    
-    /// Unique Identifier
-    open var uid: String {
-        get {
-            //defaults to channel name
-            var channelUID = name
-            
-            //if identifier isn't empty, fetch the first value as the channel unique identifier
-            if let dictionary = identifier?.first {
-                channelUID = dictionary.value as! String
-            }
-            
-            return channelUID
-        }
+        return client.subscribed(name, identifier: identifier)
     }
     
     /// A block called when a message has been received on this channel.
@@ -74,7 +59,7 @@ open class Channel: Hashable, Equatable {
     ///     - error: An error when decoding of the message failed.
     ///
     open var onReceive: ((Any?, Swift.Error?) -> Void)?
-  
+    
     /// A block called when the channel has been successfully subscribed.
     ///
     /// Note: This block will be called if the client disconnects and then
@@ -95,7 +80,7 @@ open class Channel: Hashable, Equatable {
     /// A block called when a subscription attempt was rejected
     /// by the server.
     open var onRejected: (() -> Void)?
-
+    
     internal init(name: String, identifier: ChannelIdentifier?, client: ActionCableClient, autoSubscribe: Bool=true, shouldBufferActions: Bool=true) {
         self.name = name
         self.client = client
@@ -122,8 +107,8 @@ open class Channel: Hashable, Equatable {
     /// - Parameters:
     ///     - action: The name of the action (e.g. speak)
     /// - Returns: `true` if the action was sent.
-  
-    open subscript(name: String) -> (Dictionary<String, Any>) -> Swift.Error? {
+    
+    open subscript(name: String) -> ([String : Any]) -> Swift.Error? {
         
         func executeParams(_ params : Dictionary<String, Any>?) -> Swift.Error?  {
             return action(name, with: params)
@@ -151,9 +136,9 @@ open class Channel: Hashable, Equatable {
     @discardableResult
     open func action(_ name: String, with params: [String: Any]? = nil) -> Swift.Error? {
         do {
-          try (client.action(name, on: self, with: params))
-        // Consume the error and return false if the error is a not subscribed
-        // error and we are buffering the actions.
+            try (client.action(name, on: self, with: params))
+            // Consume the error and return false if the error is a not subscribed
+            // error and we are buffering the actions.
         } catch TransmitError.notSubscribed where self.shouldBufferActions {
             
             ActionCableSerialQueue.async(execute: {
@@ -197,37 +182,37 @@ open class Channel: Hashable, Equatable {
 }
 
 public func ==(lhs: Channel, rhs: Channel) -> Bool {
-  return (lhs.hashValue == rhs.hashValue) && (lhs.uid == rhs.uid)
+    return (lhs.hashValue == rhs.hashValue) && (lhs.name == rhs.name)
 }
 
 extension Channel {
     internal func onMessage(_ message: Message) {
         switch message.messageType {
-            case .message:
-                if let callback = self.onReceive {
-                    DispatchQueue.main.async(execute: { callback(message.data, message.error) })
-                }
-                
-                if let actionName = message.actionName, let callback = self.onReceiveActionHooks[actionName] {
-                    DispatchQueue.main.async(execute: { callback(message.data, message.error) })
-                }
-            case .confirmSubscription:
-                if let callback = self.onSubscribed {
-                    DispatchQueue.main.async(execute: callback)
-                }
-                
-                self.flushBuffer()
-            case .rejectSubscription:
-                if let callback = self.onRejected {
-                    DispatchQueue.main.async(execute: callback)
-                }
-            case .hibernateSubscription:
-              fallthrough
-            case .cancelSubscription:
-                if let callback = self.onUnsubscribed {
-                    DispatchQueue.main.async(execute: callback)
-                }
-            default: break
+        case .message:
+            if let callback = self.onReceive {
+                DispatchQueue.main.async(execute: { callback(message.data, message.error) })
+            }
+            
+            if let actionName = message.actionName, let callback = self.onReceiveActionHooks[actionName] {
+                DispatchQueue.main.async(execute: { callback(message.data, message.error) })
+            }
+        case .confirmSubscription:
+            if let callback = self.onSubscribed {
+                DispatchQueue.main.async(execute: callback)
+            }
+            
+            self.flushBuffer()
+        case .rejectSubscription:
+            if let callback = self.onRejected {
+                DispatchQueue.main.async(execute: callback)
+            }
+        case .hibernateSubscription:
+            fallthrough
+        case .cancelSubscription:
+            if let callback = self.onUnsubscribed {
+                DispatchQueue.main.async(execute: callback)
+            }
+        default: break
         }
     }
     
@@ -255,7 +240,7 @@ extension Channel {
 
 extension Channel: CustomDebugStringConvertible {
     public var debugDescription: String {
-        return "ActionCable.Channel<\(hashValue)>(name: \"\(self.name)\" subscribed: \(self.isSubscribed))"
+        return "ActionCable.Channel<\(hashValue)>(name: \"\(self.name)\" identifier: \(self.identifier) subscribed: \(self.isSubscribed))"
     }
 }
 
@@ -265,6 +250,6 @@ extension Channel: CustomPlaygroundQuickLookable {
     /// If this type has value semantics, the `PlaygroundQuickLook` instance
     /// should be unaffected by subsequent mutations.
     public var customPlaygroundQuickLook: PlaygroundQuickLook {
-              return PlaygroundQuickLook.text(self.name)
+        return PlaygroundQuickLook.text(self.name)
     }
 }

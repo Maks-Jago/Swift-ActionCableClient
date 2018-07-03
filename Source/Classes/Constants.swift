@@ -52,50 +52,52 @@ internal enum MessageType {
     
     var string: String {
         switch self {
-            case .confirmSubscription: return "confirm_subscription"
-            case .rejectSubscription: return "reject_subscription"
-            case .ping: return "ping"
-            case .welcome: return "welcome"
-            case .message: return "message" // STUB!
-            case .cancelSubscription: return "cancel_subscription" // STUB!
-            case .hibernateSubscription: return "hibernate_subscription" //STUB!
-            case .unrecognized: return "___unrecognized"
+        case .confirmSubscription: return "confirm_subscription"
+        case .rejectSubscription: return "reject_subscription"
+        case .ping: return "ping"
+        case .welcome: return "welcome"
+        case .message: return "message" // STUB!
+        case .cancelSubscription: return "cancel_subscription" // STUB!
+        case .hibernateSubscription: return "hibernate_subscription" //STUB!
+        case .unrecognized: return "___unrecognized"
         }
     }
     
     init(string: String) {
         switch(string) {
-            case MessageType.welcome.string:
-                self = MessageType.welcome
-            case MessageType.ping.string:
-                self = MessageType.ping
-            case MessageType.confirmSubscription.string:
-                self = MessageType.confirmSubscription
-            case MessageType.rejectSubscription.string:
-                self = MessageType.rejectSubscription
-            case MessageType.cancelSubscription.string:
-                self = MessageType.cancelSubscription
-            case MessageType.hibernateSubscription.string:
-                self = MessageType.hibernateSubscription
-            default:
-                self = MessageType.unrecognized
+        case MessageType.welcome.string:
+            self = MessageType.welcome
+        case MessageType.ping.string:
+            self = MessageType.ping
+        case MessageType.confirmSubscription.string:
+            self = MessageType.confirmSubscription
+        case MessageType.rejectSubscription.string:
+            self = MessageType.rejectSubscription
+        case MessageType.cancelSubscription.string:
+            self = MessageType.cancelSubscription
+        case MessageType.hibernateSubscription.string:
+            self = MessageType.hibernateSubscription
+        default:
+            self = MessageType.unrecognized
         }
     }
 }
 
 internal struct Message {
     var channelName : String?
+    var channelIdentifier: Dictionary<String, Any>?
     var actionName : String?
     var messageType : MessageType
     var data : Any?
     var error: Swift.Error?
-  
+    
     static func simple(_ channel: Channel, messageType: MessageType) -> Message {
         return Message(channelName: channel.name,
-                        actionName: nil,
+                       channelIdentifier: nil,
+                       actionName: nil,
                        messageType: messageType,
-                              data: nil,
-                             error: nil)
+                       data: nil,
+                       error: nil)
     }
 }
 
@@ -105,10 +107,10 @@ internal struct Action {
 }
 
 func exp2(_ x: [Double]) -> [Double] {
-  var results = [Double](repeating: 0.0, count: x.count)
-  vvexp2(&results, x, [Int32(x.count)])
-  
-  return results
+    var results = [Double](repeating: 0.0, count: x.count)
+    vvexp2(&results, x, [Int32(x.count)])
+    
+    return results
 }
 
 
