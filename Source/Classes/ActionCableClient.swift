@@ -447,8 +447,10 @@ extension ActionCableClient {
             }
         case .confirmSubscription:
             synced(unconfirmedChannels) {
-                if let channel = findChannel(byName: message.channelName!, withIdentifier: message.channelIdentifier, inArray: unconfirmedChannels), let index = unconfirmedChannels.index(of: channel) {
-                    unconfirmedChannels.remove(at: index)
+                var tmpChannels = unconfirmedChannels
+                
+                if let channel = findChannel(byName: message.channelName!, withIdentifier: message.channelIdentifier, inArray: tmpChannels), let index = tmpChannels.index(of: channel) {
+                    tmpChannels.remove(at: index)
                     channelArray.append(channel)
                     
                     // Notify Channel
@@ -458,13 +460,17 @@ extension ActionCableClient {
                         DispatchQueue.main.async(execute: { callback(channel) })
                     }
                 }
+                
+                unconfirmedChannels = tmpChannels
             }
         case .rejectSubscription:
             // Remove this channel from the list of unconfirmed subscriptions
             synced(unconfirmedChannels) {
-                if let channel = findChannel(byName: message.channelName!, withIdentifier: message.channelIdentifier, inArray: unconfirmedChannels), let index = unconfirmedChannels.index(of: channel) {
+                var tmpChannels = unconfirmedChannels
+                
+                if let channel = findChannel(byName: message.channelName!, withIdentifier: message.channelIdentifier, inArray: tmpChannels), let index = tmpChannels.index(of: channel) {
                     
-                    unconfirmedChannels.remove(at: index)
+                    tmpChannels.remove(at: index)
                     // Notify Channel
                     channel.onMessage(message)
                     
@@ -472,6 +478,8 @@ extension ActionCableClient {
                         DispatchQueue.main.async(execute: { callback(channel) })
                     }
                 }
+                
+                unconfirmedChannels = tmpChannels
             }
         case .hibernateSubscription:
             
