@@ -29,36 +29,31 @@ internal class JSONSerializer {
     static func serialize(_ channel : Channel, command: Command, data: ActionPayload?) throws -> String {
         
         do {
-            var identifierDict : ChannelIdentifier
+            var newIdentifier = "{\"channel\":\"\(channel.name)\""
+
             if let identifier = channel.identifier {
-                identifierDict = identifier
-            } else {
-                identifierDict = Dictionary()
+                let identifierId = identifier.keys.sorted().map { "\"\($0)\":" + "\(identifier[$0]!)" }.joined(separator: ",")
+                newIdentifier.append("," + identifierId)
             }
-            
-            identifierDict["channel"] = "\(channel.name)"
-            
-            let JSONData = try JSONSerialization.data(withJSONObject: identifierDict, options: JSONSerialization.WritingOptions(rawValue: 0))
-            guard let identifierString = NSString(data: JSONData, encoding: String.Encoding.utf8.rawValue)
-                else { throw SerializationError.json }
-            
+            newIdentifier.append("}")
+
             var commandDict = [
                 "command" : command.string,
-                "identifier" : identifierString
+                "identifier" : newIdentifier
                 ] as [String : Any]
-            
+
             if let _ = data {
                 let JSONData = try JSONSerialization.data(withJSONObject: data!, options: JSONSerialization.WritingOptions(rawValue: 0))
                 guard let dataString = NSString(data: JSONData, encoding: String.Encoding.utf8.rawValue)
                     else { throw SerializationError.json }
-                
+
                 commandDict["data"] = dataString
             }
-            
+
             let CmdJSONData = try JSONSerialization.data(withJSONObject: commandDict, options: JSONSerialization.WritingOptions(rawValue: 0))
             guard let JSONString = NSString(data: CmdJSONData, encoding: String.Encoding.utf8.rawValue)
                 else { throw SerializationError.json }
-            
+
             return JSONString as String
         } catch {
             throw SerializationError.json
